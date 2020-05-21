@@ -1,7 +1,7 @@
 // 使用定位实现的移动组件示例
 import React, { useState, useEffect, useRef } from 'react';
-import './App.css';
-import { generateRoute } from './utils/routeGenerator'
+import '../assets/css/App.css';
+import { generateRoute } from '../utils/routeGenerator'
 
 // 开发用的目标位置设置
 const target = { x: 200, y: 400 }
