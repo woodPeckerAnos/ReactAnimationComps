@@ -13,29 +13,43 @@ console.log('route =====', route)
 function App(props) { // 运行元素 
   const [position, updatePosition] = useState({ x: 0, y: 0 })
   const animationID = useRef()
+  const resetCount = useRef(0)
+  const framesCount = useRef(0) // 运动进行的帧数
+
+  const { getSnapShot, movingHanlder } = props
   
   useEffect(() => {
     // 初始化的时候运行动画
     // 当外部控制的动画运行步骤发生变化的时候运行动画
     // 根据外部传入的路径图进行移动
-    animationID.current = requestAnimationFrame(moving())
+    move()
   }, [props.animationStep])
 
-  function moving() {
-    let step = 0
-    return function fn() {
-      console.log('运行一次')
-      if (step >= route.length) {
-        cancelAnimationFrame(animationID.current)
-        return
-      }
-      updatePosition({
-        x: route[step].x,
-        y: route[step].y,
-      })
-      step++
-      animationID.current = requestAnimationFrame(fn)
+  function move() {
+    animationID.current = requestAnimationFrame(changePosition)
+  }
+
+  function changePosition() {
+    const nextPosition = movingHanlder()
+    framesCount.current++
+    if(nextPosition.x === position.x && nextPosition.y === position.y) {
+      resetCount.current++
     }
+    if (resetCount.current >= 6) {
+      keepRest()
+      return 
+    }
+    updatePosition(nextPosition)
+    move()
+  }
+
+  function keepRest() {
+    resetCount.current = 0
+    getSnapShot({
+      snapShot: position, 
+      frames: framesCount.current
+    })
+    framesCount.current = 0
   }
 
   return (
