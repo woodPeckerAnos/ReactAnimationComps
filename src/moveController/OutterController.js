@@ -40,27 +40,36 @@ export function OutterController(props)  {
 
     const [movingHanlder, changeMovingHandler] = useState(function (input) { return input }) // 供运动组件执行的位置计算函数
 
+    const moveUnit = useRef()
+
     useEffect(() => {
         // 运动行为发生了变化
-        changeMovingHandler(moveStateReducer(moveFlag, route, animationStep, updateAnimationStep))
+        changeMovingHandler(moveStateReducer(moveFlag, route, animationStep, updateAnimationStep, moveUnit.current))
     }, [moveFlag])
 
     // 获取运动快照
     function getSnapShot({ frames, snapShot }) {
         const {timeStamp : timeStampArr, moveSnapShot : prevSnapShot} = animationStep
-        updateAnimationStep({
-            timeStamp: [...timeStampArr, timeStamp],
-            snapShot: {
-                ...prevSnapShot,
-                [timeStamp]: snapShot
-            }
-        })
+        const recordTimeStamp = `${frames*1000/60}`
+        if (!timeStampArr.includes(recordTimeStamp)) {
+            updateAnimationStep({
+                timeStamp: [...timeStampArr, recordTimeStamp],
+                snapShot: {
+                    ...prevSnapShot,
+                    [timeStamp]: snapShot
+                }
+            })
+        }
     }
 
-    
+    // 获取运动组件的引用
+    function getMoveUnit(ref) {
+        moveUnit.current = ref
+    }
+
     return (
         <div> 
-            {withController(renderMoveUnit(shouldRendering, props), /* 传入的参数 */{ ...props, getSnapShot, movingHanlder })}
+            {withController(renderMoveUnit(shouldRendering, props), /* 传入的参数 */{ ...props, getSnapShot, movingHanlder, getMoveUnit})}
         </div>
     )
 }
@@ -86,13 +95,12 @@ function renderMoveUnit(renderFlag, props) {
 // —— 传递给运动组件一个运算函数，运动组件内部根据这个运算函数来处理自身的变量
 // —— 类似于传递了一个自定义hook，内部运动组件根据这个hook的变化就可以判断是否进行新一次的运动
 // 该状态变更只处理同一route运动中的运动状态变化，不承担更新route的机能
-function moveStateReducer(moveState, route, animationStep, updateAnimationStep) {
+function moveStateReducer(moveState, basicRoute, animationStep, updateAnimationStep, moveUnit) {
     let newHandler = function (input) { return input }
-    let step = 0
 
-    const sameDirectionRoute = route.createCurrentStepRouteWithSameDirection(animationStep)
+    const sameDirectionRoute = route.createCurrentStepRouteWithSameDirection(animationStep, basicRoute)
     
-    const reverseDirectionRoute = route.createCurrentStepRouteWithReverseDirection(animationStep)
+    const reverseDirectionRoute = route.createCurrentStepRouteWithReverseDirection(animationStep, basicRoute)
 
     function getStepRoute(type) {
         if (type === normal) {
@@ -103,54 +111,14 @@ function moveStateReducer(moveState, route, animationStep, updateAnimationStep) 
         }
     }
 
-    motion[moveState](getStepRoute)
+    newHandler = motion[moveState](getStepRoute, moveUnit)
 
-    if (moveState === run) {
-        // 调用运行的方法
-        const routeLength = sameDirectionRoute.length
-        newHandler = () => {
-            step++
-            if (step >= routeLength) {
-                return {
-                    x: sameDirectionRoute[routeLength - 1].x,
-                    y: sameDirectionRoute[routeLength - 1].y,
-                }
-            }
-            return {
-                x: sameDirectionRoute[step].x,
-                y: sameDirectionRoute[step].y,
-            }
-        }
-    }
-    if (moveState === stop) {
-        // 调用停止的方法 
-        // 停止方法会保持结果值和输入值一样
-        // 内部运动组件根据4点原则（0% 25% 50% 100%）确定位置没有发生变化，则维护自身为停止
-        newHandler = (input) => {
-            return {
-                x: input.x,
-                y: input.y,
-            }
-        }
-        // 调用快照记录的方法
-        // 记录快照的方法由父组件统一维护，传递给运动组件进行调用
-
-    }
-    if (moveState === backToVeryStart) {
-        // 从逻辑一致性上来说，先要获取当前快照信息
-        // 如果没有快照信息则更新添加进本次快照信息
-        // 如果有这个快照信息，则不进行快照更新处理
-
-        // 记录运动信息后，反转route数组，使用反转的route数组路劲数据既可以反向运动
-
-        // 生成运行的handler
-    }
-    if (moveState === finish) {
-        // 生成直接抵达当前route终点的handler
-    }
     if (moveState === backToThisStart) {
         // 调用获取指定快照数据的方法
-  
+        const currentStep = moveUnit.cancelMoveAndRecordData()
+        const prevStep = animationStep.timeStamp.slice(-1)[0]
+        const reverseDirectionRoute = getStepRoute(reverse)
+        const specificRoute = route.createRouteToSpecificStep(animationStep, currentStep, prevStep, route)
         // 设定运行目标的方法
 
         // 调用运行的方法

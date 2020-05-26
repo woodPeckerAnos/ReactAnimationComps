@@ -6,7 +6,7 @@ export function withController(Childcomponent, props) {
     }
     return class withController extends Component {
         render() {
-            return <Childcomponent {...props}/>
+            return <Childcomponent {...props}  ref={props.getMoveUnit}/>
         }
     }
 }

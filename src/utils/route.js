@@ -17,7 +17,7 @@ export const route = {
     },
 
     // 根据animationSteps数据处理移动route的方法 -- 方向不发生变化
-    createCurrentStepRouteWithSameDirection(animationStep) {
+    createCurrentStepRouteWithSameDirection(animationStep, route) {
         const { timeStamp, moveSnapShot } = animationStep
         const latestTimeStamp = timeStamp.slice(-1)[0]
         // 根据时间戳预估位置
@@ -30,7 +30,22 @@ export const route = {
     },
 
     // 根据animationSteps数据处理移动route的方法 -- 方向与初始移动方向相反
-    createCurrentStepRouteWithReverseDirection() {
+    createCurrentStepRouteWithReverseDirection(animationStep, route) {
+        // 实现方式，包含当前的step在内，直接反转已经运行过的轨迹即可
+        const { timeStamp, moveSnapShot } = animationStep
+        const latestTimeStamp = timeStamp.slice(-1)[0]
+        // 根据时间戳预估位置
+        // caution: 当运动为非线性的时候，本质是根据速率函数来控制每个点之间的间距，因此帧数和索引应该不会有什么变化
+        const probablyRange = [Math.floor(latestTimeStamp/1000*60 - 10), Math.ceil(latestTimeStamp/1000*60 + 10)] // 60:frames  10:adjustNum
+        const currentIndex = probablyRange[0] + route.slice(probablyRange[0], probablyRange[1] + 1)
+            .findIndex(item => item.x === moveSnapShot[latestTimeStamp].x && item.y === moveSnapShot[latestTimeStamp].y)
+        route = route.slice(0, currentIndex + 1) // 生成最新的route
+        route.reverse()
+        return route
+    },
 
+    // 生成到某一个特定step位置的route -- 方向与当前移动位置相反
+    createRouteToSpecificStep(animationStep, currentStep, targetStep, route) {
+        
     }
 }

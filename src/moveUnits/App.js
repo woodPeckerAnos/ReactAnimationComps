@@ -1,5 +1,5 @@
 // 使用定位实现的移动组件示例
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useImperativeHandle } from 'react';
 import '../assets/css/App.css';
 import { generateRoute } from '../utils/routeGenerator'
 
@@ -10,14 +10,20 @@ let route = generateRoute(target)
 
 console.log('route =====', route)
 
-function App(props) { // 运行元素 
+function App(props, ref) { // 运行元素 
   const [position, updatePosition] = useState({ x: 0, y: 0 })
   const animationID = useRef()
   const resetCount = useRef(0)
   const framesCount = useRef(0) // 运动进行的帧数
 
   const { getSnapShot, movingHanlder } = props
-  
+
+  useImperativeHandle(ref, () => {
+    return {
+      cancelMoveAndRecordData: keepRest
+    }
+  })
+
   useEffect(() => {
     // 初始化的时候运行动画
     // 当外部控制的动画运行步骤发生变化的时候运行动画
@@ -44,12 +50,14 @@ function App(props) { // 运行元素
   }
 
   function keepRest() {
-    resetCount.current = 0
-    getSnapShot({
+    const reportData = {
       snapShot: position, 
       frames: framesCount.current
-    })
+    }
+    resetCount.current = 0
+    getSnapShot(reportData)
     framesCount.current = 0
+    return reportData
   }
 
   return (
@@ -69,4 +77,4 @@ function App(props) { // 运行元素
   );
 }
 
-export default App;
+export default React.forwardRef(App);
